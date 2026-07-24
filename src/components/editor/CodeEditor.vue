@@ -1,3 +1,8 @@
+<script lang="ts">
+// Module scope — survives component unmount/remount across project switches
+const positions = new Map<string, { scrollTop: number; head: number }>();
+</script>
+
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { EditorView, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
@@ -22,8 +27,33 @@ const editorEl = ref<HTMLDivElement>();
 let view: EditorView | null = null;
 const documentsStore = useDocumentsStore();
 const uiStore = useUiStore();
-
 const { scheduleSave, flushSave } = useAutoSave();
+
+let activeDocId: string | null = null;
+
+function saveCurrentPosition() {
+  if (!view || !activeDocId) return;
+  positions.set(activeDocId, {
+    scrollTop: view.scrollDOM.scrollTop,
+    head: view.state.selection.main.head,
+  });
+}
+
+function restorePosition(docId: string) {
+  if (!view) return;
+  const pos = positions.get(docId);
+  if (!pos) return;
+  // Restore cursor safely within doc bounds
+  const safeHead = Math.min(pos.head, view.state.doc.length);
+  view.dispatch({
+    selection: { anchor: safeHead },
+    scrollIntoView: false,
+  });
+  // Restore scroll after layout
+  requestAnimationFrame(() => {
+    if (view) view.scrollDOM.scrollTop = pos.scrollTop;
+  });
+}
 
 function createEditor() {
   if (!editorEl.value) return;
@@ -32,8 +62,7 @@ function createEditor() {
     if (update.docChanged) {
       const content = update.state.doc.toString();
       emit("change", content);
-      const docId = documentsStore.selectedDocumentId;
-      if (docId) scheduleSave(docId, content);
+      if (activeDocId) scheduleSave(activeDocId, content);
     }
   });
 
@@ -47,10 +76,7 @@ function createEditor() {
     EditorState.tabSize.of(2),
   ];
 
-  // Only use oneDark in dark mode
-  if (uiStore.theme === "dark") {
-    extensions.push(oneDark);
-  }
+  if (uiStore.theme === "dark") extensions.push(oneDark);
 
   view = new EditorView({
     doc: props.content,
@@ -59,6 +85,8 @@ function createEditor() {
   });
 
   applyFontSize(props.fontSize);
+  activeDocId = documentsStore.selectedDocumentId;
+  restorePosition(activeDocId ?? "");
 }
 
 function applyFontSize(size: number) {
@@ -69,18 +97,31 @@ function applyFontSize(size: number) {
 onMounted(() => createEditor());
 
 onUnmounted(() => {
+  saveCurrentPosition();
   flushSave();
   view?.destroy();
   view = null;
 });
 
+// Save position BEFORE the document switches
+watch(
+  () => documentsStore.selectedDocumentId,
+  (newId, oldId) => {
+    if (oldId) saveCurrentPosition();
+    activeDocId = newId;
+  },
+);
+
+// When content changes externally (tab switch), dispatch + restore
 watch(
   () => props.content,
   (newContent) => {
-    if (view && newContent !== view.state.doc.toString()) {
+    if (!view) return;
+    if (newContent !== view.state.doc.toString()) {
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: newContent },
       });
+      if (activeDocId) restorePosition(activeDocId);
     }
   },
 );
@@ -96,7 +137,6 @@ watch(
 </template>
 
 <style>
-/* Global (non-scoped) to override CodeMirror theme */
 .codemirror-wrapper {
   height: 100%;
   width: 100%;
