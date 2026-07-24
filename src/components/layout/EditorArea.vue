@@ -101,7 +101,7 @@ const noDoc = computed(() => !!projectsStore.selectedProjectId && !documentsStor
           <button
             class="fill-btn"
             :class="{ disabled: !canFillVariables }"
-            :title="canFillVariables ? '填充变量 (⌘⇧F)' : '当前文案中没有可填充的变量'"
+            :title="canFillVariables ? '填充变量 (⌘⇧F)' : '当前文案中没有可填充的变量，例如 \${name}'"
             @click="handleOpenVariableFill"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
