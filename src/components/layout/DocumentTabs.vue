@@ -13,8 +13,10 @@ const newDocName = ref("");
 const contextMenu = ref<{ docId: string; docName: string; x: number; y: number } | null>(null);
 
 function openNewDocInput() {
+  console.log("openNewDocInput called, showNewDocInput before:", showNewDocInput.value);
   newDocName.value = "新建文案";
   showNewDocInput.value = true;
+  console.log("showNewDocInput after:", showNewDocInput.value);
 }
 
 function triggerNewDoc() {
