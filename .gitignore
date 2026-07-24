@@ -3,3 +3,7 @@ dist/
 src-tauri/target/
 .DS_Store
 *.log
+/.idea/misc.xml
+/.idea/DraftDock.iml
+/.idea/modules.xml
+/.idea/vcs.xml
