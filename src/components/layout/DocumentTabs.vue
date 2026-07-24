@@ -360,6 +360,13 @@ async function exportToFile() {
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.add-tab-btn:hover {
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-primary);
 }
