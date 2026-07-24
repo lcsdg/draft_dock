@@ -1,15 +1,30 @@
-<script lang="ts">
-// Module scope — survives component unmount/remount across project switches
-const positions = new Map<string, { scrollTop: number; head: number }>();
-</script>
-
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { EditorView, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
+import { javascript } from "@codemirror/lang-javascript";
+import { json } from "@codemirror/lang-json";
+import { sql, PostgreSQL, MySQL } from "@codemirror/lang-sql";
+import { java } from "@codemirror/lang-java";
+import { xml } from "@codemirror/lang-xml";
+import { html } from "@codemirror/lang-html";
+import { css } from "@codemirror/lang-css";
+import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { editorPositions } from "@/lib/editorState";
+
+// Language map for fenced code blocks in markdown
+const codeLanguages: Record<string, any> = {
+  js: javascript(), javascript: javascript(), ts: javascript({ typescript: true }), typescript: javascript({ typescript: true }),
+  json: json(),
+  sql: sql(), mysql: sql({ dialect: MySQL }), pgsql: sql({ dialect: PostgreSQL }), postgresql: sql({ dialect: PostgreSQL }),
+  java: java(),
+  xml: xml(), html: html(), css: css(),
+  python: python(), py: python(),
+  yaml: undefined, yml: undefined, sh: undefined, bash: undefined, shell: undefined,
+};
 import { useDocumentsStore } from "@/stores/documents";
 import { useUiStore } from "@/stores/ui";
 import { useAutoSave } from "@/composables/useAutoSave";
@@ -33,7 +48,7 @@ let activeDocId: string | null = null;
 
 function saveCurrentPosition() {
   if (!view || !activeDocId) return;
-  positions.set(activeDocId, {
+  editorPositions.set(activeDocId, {
     scrollTop: view.scrollDOM.scrollTop,
     head: view.state.selection.main.head,
   });
@@ -41,7 +56,7 @@ function saveCurrentPosition() {
 
 function restorePosition(docId: string) {
   if (!view) return;
-  const pos = positions.get(docId);
+  const pos = editorPositions.get(docId);
   if (!pos) return;
   // Restore cursor safely within doc bounds
   const safeHead = Math.min(pos.head, view.state.doc.length);
@@ -69,7 +84,12 @@ function createEditor() {
   const extensions = [
     keymap.of([...defaultKeymap, ...historyKeymap]),
     history(),
-    markdown(),
+    markdown({
+      codeLanguages: (info: string) => {
+        const lang = info.split(/\s+/)[0].toLowerCase();
+        return (codeLanguages as Record<string, any>)[lang] || null;
+      },
+    }),
     cmPlaceholder("开始编辑..."),
     updateListener,
     EditorView.lineWrapping,
