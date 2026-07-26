@@ -173,23 +173,26 @@ async function exportToFile() {
       </button>
     </div>
 
-    <div v-if="showNewDocInput" class="new-doc-overlay" @click="cancelNewDoc">
-      <div class="new-doc-card" @click.stop>
-        <p class="card-label">新建文案</p>
-        <input
-          v-model="newDocName"
-          type="text"
-          placeholder="文案名称"
-          class="new-doc-input"
-          @keydown.enter="handleCreate"
-          @keydown.escape="cancelNewDoc"
-        />
-        <div class="card-actions">
-          <button class="ghost" @click="cancelNewDoc">取消</button>
-          <button class="primary" @click="handleCreate">创建</button>
+    <Teleport to="body">
+      <div v-if="showNewDocInput" class="new-doc-overlay" @click.self="cancelNewDoc">
+        <div class="new-doc-card">
+          <p class="card-label">新建文案</p>
+          <input
+            v-model="newDocName"
+            type="text"
+            placeholder="文案名称"
+            class="new-doc-input"
+            autofocus
+            @keydown.enter="handleCreate"
+            @keydown.escape="cancelNewDoc"
+          />
+          <div class="card-actions">
+            <button class="ghost" @click="cancelNewDoc">取消</button>
+            <button class="primary" @click="handleCreate">创建</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Context menu -->
     <Teleport to="body">
@@ -375,7 +378,7 @@ async function exportToFile() {
 .new-doc-overlay {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 1000;
   display: flex;
   align-items: flex-start;
   justify-content: center;
