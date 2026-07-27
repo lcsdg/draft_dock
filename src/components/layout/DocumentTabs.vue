@@ -13,10 +13,8 @@ const newDocName = ref("");
 const contextMenu = ref<{ docId: string; docName: string; x: number; y: number } | null>(null);
 
 function openNewDocInput() {
-  console.log("openNewDocInput called, showNewDocInput before:", showNewDocInput.value);
   newDocName.value = "新建文案";
   showNewDocInput.value = true;
-  console.log("showNewDocInput after:", showNewDocInput.value);
 }
 
 function triggerNewDoc() {
@@ -176,15 +174,14 @@ async function exportToFile() {
     </div>
 
     <Teleport to="body">
-      <div v-if="showNewDocInput" class="new-doc-overlay" @click.self="cancelNewDoc">
-        <div class="new-doc-card">
+      <div v-if="showNewDocInput" class="new-doc-overlay" @click="cancelNewDoc">
+        <div class="new-doc-card" @click.stop>
           <p class="card-label">新建文案</p>
           <input
             v-model="newDocName"
             type="text"
             placeholder="文案名称"
             class="new-doc-input"
-            autofocus
             @keydown.enter="handleCreate"
             @keydown.escape="cancelNewDoc"
           />
@@ -380,7 +377,7 @@ async function exportToFile() {
 .new-doc-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 100;
   display: flex;
   align-items: flex-start;
   justify-content: center;
