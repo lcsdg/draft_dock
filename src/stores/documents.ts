@@ -9,6 +9,7 @@ export const useDocumentsStore = defineStore("documents", () => {
   const selectedDocumentId = ref<string | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const loadedProjectId = ref<string | null>(null);
 
   const projectsStore = useProjectsStore();
 
@@ -17,19 +18,32 @@ export const useDocumentsStore = defineStore("documents", () => {
     if (!pid) {
       documents.value = [];
       selectedDocumentId.value = null;
+      loadedProjectId.value = null;
       return;
+    }
+
+    if (loadedProjectId.value !== pid) {
+      // 切换项目时先断开旧项目文案的选中关系，避免接口返回前继续展示上一个项目的内容。
+      // 文案 ID 是业务 ID，始终保持 string 类型；这里只做同项目归属校验，不做数值转换。
+      documents.value = [];
+      selectedDocumentId.value = null;
+      loadedProjectId.value = pid;
     }
 
     loading.value = true;
     error.value = null;
     try {
       documents.value = await cmd.listDocuments(pid);
-      // Auto-select first document if nothing is selected
-      if (documents.value.length > 0 && !selectedDocumentId.value) {
-        selectedDocumentId.value = documents.value[0].id;
-      } else if (documents.value.length === 0) {
-        selectedDocumentId.value = null;
-      }
+      // 加载完成后，选中文档必须收敛到当前项目的文案集合：
+      // 1. 如果搜索跳转或启动恢复已经指定了当前项目内的文案，则保留该选择；
+      // 2. 如果仍然指向旧项目文案或没有选择，则选当前项目第一篇；
+      // 3. 如果当前项目没有文案，则置空，让编辑区显示空态。
+      const selectedDocStillInProject = selectedDocumentId.value
+        ? documents.value.some((d) => d.id === selectedDocumentId.value)
+        : false;
+      selectedDocumentId.value = selectedDocStillInProject
+        ? selectedDocumentId.value
+        : documents.value[0]?.id ?? null;
     } catch (e) {
       error.value = `加载文案失败: ${e}`;
       console.error("Failed to load documents:", e);
